@@ -1,11 +1,11 @@
 from __future__ import print_function
-import sys
 import re
 from email.mime.text import MIMEText
 import base64
 from oauth2client import file, client, tools
 from googleapiclient.discovery import build
 from httplib2 import Http
+import argparse
 
 wordDict = dict()
 
@@ -25,7 +25,7 @@ def getGmailApiService():
         creds = tools.run_flow(flow, store)
     return build('gmail', 'v1', http=creds.authorize(Http()))
 
-def create_message(sender, to, subject, message_text):
+def create_message(sender, to, subject, message_text, cc):
     """Create a message for an email.
 
     Args:
@@ -41,7 +41,8 @@ def create_message(sender, to, subject, message_text):
     message['to'] = to
     message['from'] = sender
     message['subject'] = subject
-    message['cc'] = "chasesnevergiveup@gmail.com"
+    if cc:
+        message['cc'] = cc
     return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
 
 def send_message(service, user_id, message):
@@ -61,20 +62,30 @@ def send_message(service, user_id, message):
         print("Message Id: %s" % message['id'])
         return message
     except Exception as error:
-        print("An error occurred: %s" % error)
+        print("An error occurred: %s" % error)    
 
-toEmail = input("Who would you like to send this to?: ")
-emailSubject = input("What is the subject of this email?: ")
+parser = argparse.ArgumentParser()
+parser.add_argument("filename", help="Enter the name of the template file")
+parser.add_argument("--to", help="Enter the email address of the person who you would like to send the email to. If you don't add it here you will be prompted to enter it.")
+parser.add_argument("--subject", help="Enter the subject of the email. If you don't add it here you will be prompted to enter it.")
+parser.add_argument("--cc", help="Enter who you would like to be cc'd on this email.")
+args = parser.parse_args()    
+toEmail = args.to
+if not toEmail:
+    toEmail = input("What is the email address of the person you would like to send this to?: ")
+emailSubject = args.subject
+if not emailSubject:
+    emailSubject = input("What is the subject of this email?: ")
 print("Enter the replacement words for the following:")
-templateFile = open("MoveInsEmailTemplate.txt", "r")
+templateFile = open(args.filename, "r")
 template = templateFile.read()
 templateFile.close()
 template = re.sub('\{(.*?)\}', insertWord, template)
 print("Send to: %s" % toEmail)
 print("Subject: %s" % emailSubject)
-print("cc: %s" % "chasesnevergiveup@gmail.com")
+print("cc: %s" % args.cc)
 print(template)
-if (input("Would you like to send the message? (Y/N)").upper() == "Y"):
-    message = create_message("aarowhead@gmail.com", toEmail, emailSubject, template)
+if input("Would you like to send the message? (Y/N)").upper() == "Y":
+    message = create_message("me", toEmail, emailSubject, template, args.cc)
     serv = getGmailApiService()
-    send_message(serv, "aarowhead@gmail.com", message)
+    send_message(serv, "me", message)
