@@ -77,4 +77,4 @@ print(template)
 if (input("Would you like to send the message? (Y/N)").upper() == "Y"):
     message = create_message("aarowhead@gmail.com", toEmail, emailSubject, template)
     serv = getGmailApiService()
-    send_message(serv, "aarowhead@gmial.com", message)
+    send_message(serv, "aarowhead@gmail.com", message)
